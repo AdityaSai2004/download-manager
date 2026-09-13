@@ -16,17 +16,17 @@ A high-performance parallel file downloader written in Go that leverages HTTP ra
 
 The project is organized into focused, single-responsibility modules:
 
-| Module | Purpose |
-|--------|---------|
-| `main.go` | CLI orchestration and download finalization |
-| `download.go` | Preflight checks, worker coordination, cancellation, and completion |
-| `worker.go` | Individual worker's ranged request and positional writes |
-| `model.go` | Metadata models, worker configuration, and range splitting logic |
-| `metadata.go` | Atomic metadata persistence and loading |
-| `range.go` | HTTP ranged-response validation |
-| `filename.go` | Output filename and content-type inference |
-| `progress.go` | Aggregate and per-worker progress state/rendering |
-| `main_test.go` | Resume and failure behavior tests |
+| Module         | Purpose                                                             |
+| -------------- | ------------------------------------------------------------------- |
+| `main.go`      | CLI orchestration and download finalization                         |
+| `download.go`  | Preflight checks, worker coordination, cancellation, and completion |
+| `worker.go`    | Individual worker's ranged request and positional writes            |
+| `model.go`     | Metadata models, worker configuration, and range splitting logic    |
+| `metadata.go`  | Atomic metadata persistence and loading                             |
+| `range.go`     | HTTP ranged-response validation                                     |
+| `filename.go`  | Output filename and content-type inference                          |
+| `progress.go`  | Aggregate and per-worker progress state/rendering                   |
+| `main_test.go` | Resume and failure behavior tests                                   |
 
 ## Prerequisites
 
@@ -89,6 +89,7 @@ go run . https://example.com/largefile.zip 4 myfile.zip myfile.zip.metadata.json
 ```
 
 After completion, all files will be organized in the folder:
+
 - `largefile/largefile.zip` - The final downloaded file
 - `largefile/largefile.zip.part` - Removed after successful completion
 - `largefile/largefile.zip.metadata.json` - Download metadata and state
@@ -117,6 +118,7 @@ largefile/
 ## Requirements
 
 The download source must:
+
 - Provide a positive `ContentLength` header
 - Support byte range requests (HTTP 206 Partial Content)
 - Return matching `Content-Range` responses for each range request
@@ -132,7 +134,3 @@ go test -v
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
