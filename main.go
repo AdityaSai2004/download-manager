@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
 )
 
 func main() {
@@ -37,20 +38,36 @@ func main() {
 	}
 
 	filename := fetchFileName(response, rawURL)
+	folderName := getFilenameWithoutExtension(filename)
+	
+	// Create download folder
+	if err := os.MkdirAll(folderName, 0755); err != nil {
+		fmt.Println("Download failed: could not create folder:", err)
+		return
+	}
+
 	metadataPath := ""
 	if len(os.Args) >= 4 {
 		if isMetadataFilename(os.Args[3]) {
 			metadataPath = os.Args[3]
 		} else {
 			filename = os.Args[3]
+			folderName = getFilenameWithoutExtension(filename)
+			if err := os.MkdirAll(folderName, 0755); err != nil {
+				fmt.Println("Download failed: could not create folder:", err)
+				return
+			}
 		}
 	}
 	if len(os.Args) == 5 {
 		metadataPath = os.Args[4]
 	}
 	if metadataPath == "" {
-		metadataPath = filename + ".metadata.json"
+		metadataPath = filepath.Join(folderName, filename+".metadata.json")
 	}
+
+	partFileName := filepath.Join(folderName, filename+".part")
+	finalFileName := filepath.Join(folderName, filename)
 
 	ranges, err := splitByteRanges(response.ContentLength, workerCount)
 	if err != nil {
@@ -84,7 +101,7 @@ func main() {
 		return
 	}
 	if metadata.Downloaded > 0 {
-		partInfo, statErr := os.Stat(filename + ".part")
+		partInfo, statErr := os.Stat(partFileName)
 		if statErr != nil || partInfo.Size() < metadata.TotalSize {
 			fmt.Println("Download failed: metadata progress does not match the partial file")
 			return
@@ -95,11 +112,11 @@ func main() {
 		fmt.Println("Download failed: could not close header response:", err)
 		return
 	}
-	if err := downloadParallel(metadata, metadataPath, filename+".part"); err != nil {
+	if err := downloadParallel(metadata, metadataPath, partFileName); err != nil {
 		fmt.Println("Download failed:", err)
 		return
 	}
-	if err := os.Rename(filename+".part", filename); err != nil {
+	if err := os.Rename(partFileName, finalFileName); err != nil {
 		fmt.Println("Could not finalize download:", err)
 		return
 	}

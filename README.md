@@ -1,21 +1,138 @@
-# Download Manager v4
+# Download Manager
 
-v4 keeps the parallel ranged downloader behavior from v3, but separates the implementation into focused modules:
+A high-performance parallel file downloader written in Go that leverages HTTP range requests to download files using multiple concurrent workers.
 
-- `main.go`: CLI orchestration and download finalization
-- `model.go`: metadata models, worker configuration, and range splitting
-- `metadata.go`: atomic metadata persistence and loading
-- `range.go`: HTTP ranged-response validation
-- `filename.go`: output filename and content-type inference
-- `progress.go`: aggregate and per-worker progress state/rendering
-- `worker.go`: one worker's ranged request and positional writes
-- `download.go`: preflight, worker coordination, cancellation, and completion checks
-- `main_test.go`: resume and failure behavior tests
+## Features
 
-Run it with:
+- **Parallel Downloads**: Download files using multiple concurrent workers for increased speed
+- **Resume Capability**: Save download metadata to resume interrupted downloads
+- **Range Request Support**: Utilizes HTTP 206 Partial Content responses for efficient chunked downloading
+- **Progress Tracking**: Real-time progress reporting for both aggregate and per-worker downloads
+- **Atomic Metadata Persistence**: Safely save and recover download state
+- **Flexible Output**: Automatic filename inference from HTTP headers or custom naming
+- **Test Coverage**: Comprehensive tests for resume and failure scenarios
 
-```text
-go run ./v4 <url> <workers> [filename] [metadata.json]
+## Architecture
+
+The project is organized into focused, single-responsibility modules:
+
+| Module | Purpose |
+|--------|---------|
+| `main.go` | CLI orchestration and download finalization |
+| `download.go` | Preflight checks, worker coordination, cancellation, and completion |
+| `worker.go` | Individual worker's ranged request and positional writes |
+| `model.go` | Metadata models, worker configuration, and range splitting logic |
+| `metadata.go` | Atomic metadata persistence and loading |
+| `range.go` | HTTP ranged-response validation |
+| `filename.go` | Output filename and content-type inference |
+| `progress.go` | Aggregate and per-worker progress state/rendering |
+| `main_test.go` | Resume and failure behavior tests |
+
+## Prerequisites
+
+- Go 1.16 or higher
+- Network access to download from HTTP/HTTPS sources
+
+## Installation
+
+Clone the repository:
+
+```bash
+git clone https://github.com/yourusername/download-manager.git
+cd download-manager/v4
 ```
 
-The source must provide a positive `ContentLength` and honor byte ranges with matching `206 Partial Content` and `Content-Range` responses.
+Build the binary:
+
+```bash
+go build -o download-manager
+```
+
+## Usage
+
+### Basic Download
+
+```bash
+go run . <url> <workers>
+```
+
+### With Custom Filename
+
+```bash
+go run . <url> <workers> <filename>
+```
+
+### With Metadata for Resume
+
+```bash
+go run . <url> <workers> <filename> <metadata.json>
+```
+
+### Examples
+
+Download a file using 4 concurrent workers (creates `largefile/` folder with all files inside):
+
+```bash
+go run . https://example.com/largefile.zip 4
+```
+
+Download and save with a custom filename:
+
+```bash
+go run . https://example.com/largefile.zip 4 myfile.zip
+```
+
+Resume a previous download using saved metadata:
+
+```bash
+go run . https://example.com/largefile.zip 4 myfile.zip myfile.zip.metadata.json
+```
+
+After completion, all files will be organized in the folder:
+- `largefile/largefile.zip` - The final downloaded file
+- `largefile/largefile.zip.part` - Removed after successful completion
+- `largefile/largefile.zip.metadata.json` - Download metadata and state
+
+## How It Works
+
+1. **Folder Organization**: Creates a folder with the name of the download file (without extension) to contain all download-related files
+2. **Preflight Check**: Verifies the server supports range requests and provides content length
+3. **Range Splitting**: Divides the file into chunks based on the number of workers
+4. **Parallel Download**: Workers simultaneously download their assigned byte ranges
+5. **Positional Write**: Each worker writes to its specific position in the partial file (.part)
+6. **Progress Tracking**: Real-time monitoring of individual and aggregate progress with periodic metadata saves
+7. **Atomic Completion**: Finalizes the download by renaming the partial file to the final filename
+
+### Directory Structure
+
+When downloading a file named `largefile.zip`, the following directory structure is created:
+
+```
+largefile/
+  ├── largefile.zip                    # Final downloaded file
+  ├── largefile.zip.part               # Partial file (during download)
+  └── largefile.zip.metadata.json      # Download metadata and progress
+```
+
+## Requirements
+
+The download source must:
+- Provide a positive `ContentLength` header
+- Support byte range requests (HTTP 206 Partial Content)
+- Return matching `Content-Range` responses for each range request
+
+## Testing
+
+Run the test suite to verify resume and failure behavior:
+
+```bash
+go test -v
+```
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.

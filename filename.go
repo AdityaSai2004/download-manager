@@ -7,6 +7,15 @@ import (
 	"strings"
 )
 
+// getFilenameWithoutExtension returns the filename without its extension
+func getFilenameWithoutExtension(filename string) string {
+	ext := path.Ext(filename)
+	if ext == "" {
+		return filename
+	}
+	return filename[:len(filename)-len(ext)]
+}
+
 func isMetadataFilename(filename string) bool {
 	return strings.HasSuffix(strings.ToLower(filename), ".metadata.json")
 }
