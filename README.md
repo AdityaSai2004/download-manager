@@ -1,10 +1,10 @@
 # Download Manager
 
-A high-performance parallel file downloader written in Go that leverages HTTP range requests to download files using multiple concurrent workers.
+A parallel HTTP file downloader written in Go using HTTP range requests and concurrent workers.
 
 ## Features
 
-- **Parallel Downloads**: Download files using multiple concurrent workers for increased speed
+- **Parallel Ranged Downloading**: Split one file into byte ranges and download those ranges concurrently using multiple workers
 - **Resume Capability**: Save download metadata to resume interrupted downloads
 - **Range Request Support**: Utilizes HTTP 206 Partial Content responses for efficient chunked downloading
 - **Progress Tracking**: Real-time progress reporting for both aggregate and per-worker downloads
@@ -53,39 +53,35 @@ go build -o download-manager
 ### Basic Download
 
 ```bash
-go run . <url> <workers>
+go run . <url> <workers> [filename]
 ```
 
-### With Custom Filename
+### Resume a Download
+
+Resume using only the metadata file (no URL or worker count needed):
 
 ```bash
-go run . <url> <workers> <filename>
-```
-
-### With Metadata for Resume
-
-```bash
-go run . <url> <workers> <filename> <metadata.json>
+go run . resume <metadata.json>
 ```
 
 ### Examples
 
-Download a file using 4 concurrent workers (creates `largefile/` folder with all files inside):
+Download a file using 4 concurrent workers:
 
 ```bash
 go run . https://example.com/largefile.zip 4
 ```
 
-Download and save with a custom filename:
+Download with a custom filename:
 
 ```bash
 go run . https://example.com/largefile.zip 4 myfile.zip
 ```
 
-Resume a previous download using saved metadata:
+Resume a download using just the metadata file:
 
 ```bash
-go run . https://example.com/largefile.zip 4 myfile.zip myfile.zip.metadata.json
+go run . resume largefile/largefile.zip.metadata.json
 ```
 
 After completion, all files will be organized in the folder:
@@ -103,6 +99,7 @@ After completion, all files will be organized in the folder:
 5. **Positional Write**: Each worker writes to its specific position in the partial file (.part)
 6. **Progress Tracking**: Real-time monitoring of individual and aggregate progress with periodic metadata saves
 7. **Atomic Completion**: Finalizes the download by renaming the partial file to the final filename
+8. **Resume Support**: Metadata file contains all download information, enabling resume with a single metadata file reference
 
 ### Directory Structure
 
@@ -114,6 +111,24 @@ largefile/
   ├── largefile.zip.part               # Partial file (during download)
   └── largefile.zip.metadata.json      # Download metadata and progress
 ```
+
+### Resume Capability
+
+The metadata file contains the complete download state including:
+
+- Original URL
+- Filename
+- Total file size
+- Download progress per worker
+- ETag and Last-Modified headers for validation
+
+To resume an interrupted download, simply provide the metadata file path:
+
+```bash
+download-manager resume <path/to/file.metadata.json>
+```
+
+The tool will automatically extract all necessary information and continue downloading from where it left off.
 
 ## Requirements
 
